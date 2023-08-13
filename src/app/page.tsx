@@ -1,95 +1,98 @@
-import Image from 'next/image'
-import styles from './page.module.css'
+"use client";
+
+import { useState } from "react";
+import Button from "@mui/material/Button";
+import Input from "@mui/material/Input";
+import styles from "./page.module.css"
+
+interface UserData {
+  avatar_url: string;
+  name?: string;
+  html_url: string;
+  bio?: string
+
+}
+ interface ErrorResponse {
+  error: string;
+}
 
 export default function Home() {
+  const [username, setUsername] = useState("");
+  const [userData, setUserData] = useState<UserData | ErrorResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const searchUser = async () => {
+    setError(null);
+    setUserData(null);
+    setIsLoading(true);
+
+    if (username) {
+      try {
+        const data: UserData | ErrorResponse = await fetchUserData(username);
+        if ("error" in data) {
+          setError(data.error);
+        } else {
+          setUserData(data);
+        }
+      } catch (error) {
+        setError("An error occurred");
+      }
+    }
+
+    setIsLoading(false);
+  };
+
+  const fetchUserData = async (
+    username: string
+  ): Promise<UserData | ErrorResponse> => {
+    const response = await fetch(`https://api.github.com/users/${username}`);
+    if (response.status === 404) {
+      return { error: 'User not found' };
+    }
+    return response.json();
+  };
+
+console.log(userData, "user")
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
+    <div className={styles.container}>
+      <h1>GitHub User Search</h1>
+      <div className={styles.wrapper}>
+      <Input
+        id="outlined-basic"
+        type="text"
+        placeholder="Enter a GitHub username"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+      />
+
+      <Button size="large" variant="outlined" onClick={searchUser}>
+        Search
+      </Button>
+      </div>
+      
+
+      {isLoading && <p>Loading...</p>}
+      {error && <p>{error}</p>}
+      {userData && !("error" in userData) ? (
+      <div className={styles.userInfo}>
+        <img src={userData.avatar_url} alt="Profile Picture" width="100" />
+        <p>Name: {userData.name || username}</p>
+        {userData.bio && <p>Bio: {userData.bio}</p>}
         <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
+          Profile:{" "}
           <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href={userData.html_url}
+            target="_blank"       
           >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
+            {userData.html_url}
           </a>
-        </div>
+        </p>
       </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore the Next.js 13 playground.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+    ) : (
+      <p>{userData?.error}</p>
+    )}
+    </div>
+  );
 }
